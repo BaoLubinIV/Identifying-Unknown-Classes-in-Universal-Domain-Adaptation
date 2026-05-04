@@ -1,0 +1,151 @@
+11.05 - 11.12 
+CLIP as feature extractor: train classifier in source domain
+
+
+11.12 - 11.19
+- finish source training, issue of GPU nodes!
+node 18 being used
+1h limit for each run?
+
+- adaption with CLIP running
+teacher shares the same CLIP
+
+- adaption not learning #issue!!!
+tune lr, teacher momentum
+reason? 
+too few confident? too few known? prefer detected as unknown compared to original? print pseudo labeling, and tune threshold 
+too few trainable parameters?
+
+
+
+DBSCAN for unknown clustering
+feature vector of unknown samples as input
+save unknown prototype
+
+
+
+11.19 - 11.26
+- CLIP as feature extractor issue fixed
+
+- two step solution for unknown (running)
+	pseudo labeling, prototype update, contrastive/entropy loss, teacher update, prediction
+	dbscan for unknown + update and remember unknown prototype
+	
+- concept for integrated one step
+	pseodo labeling, #dbscan for unknown, prototype update with unknown, contrastive loss with unknown, teacher update, prediction
+	
+	
+
+11.27-12.3
+- two step solution for unknown clustering 
+	- distance based clustering takes two hyperparameter: eps & min_sample
+	- remenber and update unknown prototype/ previous noisy
+	- eval:
+		- recall: ignored pairs, per step and total
+		- precision: truly detected pairs, per step and total
+		- noisy ratio: samples not be clustered total 
+
+Findings:
+- sensitive for hyperparameter. tuning effort needed
+- bigger eps -> lower noisy ratio, fewer #cluster
+- bigger min_sample -> higher noisy ratio, slower learning 
+
+e.g.
+first step for unknown detection
+TP 52449
+FP 24199
+FN 19396
+TN 53076
+
+Unknown accuracy 0.73
+
+second step 
+385 clusters
+final noisy 24431 
+noisy ratio 0.64
+precision 0.76
+recall 0.88
+
+further
+GMM based clustering
+unknown prototypes for contrasitive loss
+
+
+12.3 -12.10
+CLIP as backbone, DBSCAN after prediction
+2-step contrasitive learning
+weak adaption
+
+
+
+- original backbone + CLIP for DBSCAN 
+- improve clustering !
+- description generation
+
+
+
+12.10-12.17
+
+V1 CLIP + COMAT + DBSCAN										！noisy ratio not so good
+V1.3 1.4 Cosine distance										no improvement
+V2 CLIP + COMAT + DBSCAN + Contrasitive learning 				same as V1, which means weak adaption 
+
+V3 CLIP + COMAT + HDBSCAN										no improvement
+V35 CLIP + COMAT + DBSCAN/HDBSCAN								no improvement
+
+V4 CLIP + COMAT + GMM											！！！Dirichlet Process Gaussian Mixture Model (DPGMM) to be running
+
+V5 Resnet + COMAT + DBSCAN										bad clustering
+V6 Resnet + COMAT + CLIP + DBSCAN								similar result as V1
+V7 Resnet + COMAT + CLIP + DBSCAN + Contrasitive learning		contrasitive learning useless for clustering
+
+V8 CLIP + DBSCAN + label assignment 							bad performance
+
+V15 CLIP + COMAT + DBSCAN forget long term noisy point			no issue
+
+12.17 - 1.7
+clusering step precision and recall issue fix 
+run cross different datasets
+documentation
+label generation 
+Source Training CLIP
+
+
+1.7-1.12
+CLIP 512 - MLP(512, 1024, 768*10) - GPT2 - captions
+Cross entropy loss 
+dataset: Conceptual Captions / COCO
+checkpoint from open source, training ongoing
+
+
+
+
+prompt engineering (This is a picture of/ Tag:)
+train MLP on ImageNet with Cosine Similarity Loss
+evaluation: 
+top 3 accuracy
+
+
+
+reorganization:
+- datasets.py
+
+- network.py
+	- CLIPBlock (with preprocessing)
+	- Resnet (with preprocessing)
+	- FeatureExtractor
+	- Classifier
+	- MLPMapping
+	
+- source_training.py
+	- Lightning class SourceModule
+		- 2 choices for backbone
+		
+- MLP_training.py
+
+- Adaption.py
+	- Lightning class adapter
+		- 3 choices for approch
+		- 2 choices for label_generator
+
+- augmentation.py (no change)
